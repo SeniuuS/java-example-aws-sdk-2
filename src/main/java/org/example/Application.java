@@ -4,25 +4,29 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.service.AnalysisService;
 import org.example.service.DownloadService;
+import org.example.service.MovementService;
 import org.example.service.UploadService;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.rekognition.model.FaceDetection;
 import software.amazon.awssdk.utils.StringUtils;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 public class Application {
 
-    public static final String REKO_BUCKET_NAME = "seniuus-test-rekognition-uploaded-video";
-    public static final String MOVEMENT_VIDEO = "C:\\Temp\\video.mp4";
-    public static final String TRAN_BUCKET_NAME = "seniuus-test-transcribe-uploaded-video";
-    public static final String VOICE_VIDEO = "C:\\Temp\\video.mp4";
-    public static Region REGION = Region.EU_WEST_2;
+    public static final String REKO_BUCKET_NAME = "seniuus-test-rekognition-uploaded-video-us";
+//    public static final String MOVEMENT_VIDEO = "G:\\Workspace\\Cleardil\\20220329_205229.mp4";
+    public static final String MOVEMENT_VIDEO = "D:\\Pictures\\Camera Roll\\WIN_20220930_11_29_05_Pro.mp4";
+    public static final String TRAN_BUCKET_NAME = "seniuus-test-transcribe-uploaded-video-us";
+    public static final String VOICE_VIDEO = "G:\\Workspace\\Cleardil\\20220911_2003232.mp4";
+    public static Region REGION = Region.US_WEST_2;
 
     public static void main(String[] args) {
-//        runForReko();
+        runForReko();
 //        runForTranscribe();
     }
 
@@ -34,11 +38,11 @@ public class Application {
         DownloadService downloadService = new DownloadService();
         AnalysisService analysisService = new AnalysisService(REGION, bucket);
 
-//        try {
-//            uploadService.upload(videoPath);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+        try {
+            uploadService.upload(videoPath);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         String resultUri = analysisService.startVoiceDetection(videoPath);
         if(!StringUtils.isEmpty(resultUri)) {
@@ -53,6 +57,7 @@ public class Application {
 
         UploadService uploadService = new UploadService(REGION, bucket);
         AnalysisService analysisService = new AnalysisService(REGION, bucket);
+        MovementService movementService = new MovementService();
 
 //        try {
 //            uploadService.upload(videoPath);
@@ -60,6 +65,9 @@ public class Application {
 //            throw new RuntimeException(e);
 //        }
 
-        analysisService.startFaceDetection(videoPath);
+        List<FaceDetection> faces = analysisService.startFaceDetection(videoPath);
+        if(faces != null & faces.size() > 0) {
+            movementService.detectMovement(faces);
+        }
     }
 }

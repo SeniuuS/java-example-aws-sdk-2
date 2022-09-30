@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.transcribe.TranscribeClient;
 import software.amazon.awssdk.services.transcribe.model.*;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -25,7 +26,9 @@ public class AnalysisService {
         this.bucket = bucket;
     }
 
-    public void startFaceDetection(Path videoPath) {
+    public List<FaceDetection> startFaceDetection(Path videoPath) {
+        List<FaceDetection> result = null;
+
         RekognitionClient rekClient = RekognitionClient.builder()
                 .region(region)
                 .credentialsProvider(ProfileCredentialsProvider.create())
@@ -50,16 +53,18 @@ public class AnalysisService {
             StartFaceDetectionResponse startLabelDetectionResult = rekClient.startFaceDetection(faceDetectionRequest);
             startJobId = startLabelDetectionResult.jobId();
 
-            getFaceResults(rekClient);
+            result = getFaceResults(rekClient);
 
             rekClient.close();
         } catch (RekognitionException e) {
             System.out.println(e.getMessage());
             System.exit(1);
         }
+        return result;
     }
 
-    private void getFaceResults(RekognitionClient rekClient) {
+    private List<FaceDetection> getFaceResults(RekognitionClient rekClient) {
+        List<FaceDetection> result = new ArrayList<>();
 
         try {
             String paginationToken = null;
@@ -104,20 +109,8 @@ public class AnalysisService {
                 System.out.println("Job");
 
                 // Show face information
-                List<FaceDetection> faces = faceDetectionResponse.faces();
-
-                for (FaceDetection face : faces) {
-                    String age = face.face().ageRange().toString();
-                    String smile = face.face().smile().toString();
-                    System.out.println("The detected face is estimated to be"
-                            + age + " years old.");
-                    System.out.println("There is a smile : " + smile);
-                }
-
-                try {
-                    System.out.println(new ObjectMapper().writeValueAsString(faceDetectionResponse));
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
+                for (FaceDetection face : faceDetectionResponse.faces()) {
+                    result.add(face);
                 }
 
             } while (faceDetectionResponse != null && faceDetectionResponse.nextToken() != null);
@@ -126,6 +119,7 @@ public class AnalysisService {
             System.out.println(e.getMessage());
             System.exit(1);
         }
+        return result;
     }
 
     public String startVoiceDetection(Path videoPath) {
