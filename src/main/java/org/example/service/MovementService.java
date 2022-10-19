@@ -1,5 +1,7 @@
 package org.example.service;
 
+import org.example.model.Movement;
+import org.example.model.MovementType;
 import software.amazon.awssdk.services.rekognition.model.FaceDetection;
 
 import java.util.ArrayList;
@@ -8,80 +10,11 @@ import java.util.List;
 
 public class MovementService {
 
-    private static final float YAW_THRESHOLD = 55;
-    private static final float PITCH_THRESHOLD = 40;
+    private static final float YAW_THRESHOLD = 50;
+    private static final float PITCH_THRESHOLD = 25;
     private static final float MOVEMENT_THRESHOLD = 5;
 
-    private enum MovementType {
-        YAW_RIGHT, YAW_LEFT, PITCH_UP, PITCH_DOWN, YAW, PITCH
-    }
-
-    private class Movement {
-        private MovementType movementType;
-        private int startTimestamp;
-        private int endTimestamp;
-
-        public Movement(MovementType movementType, int startTimestamp, int endTimestamp) {
-            this.movementType = movementType;
-            this.startTimestamp = startTimestamp;
-            this.endTimestamp = endTimestamp;
-        }
-
-        public MovementType getMovementType() {
-            return movementType;
-        }
-
-        public void setMovementType(MovementType movementType) {
-            this.movementType = movementType;
-        }
-
-        public int getStartTimestamp() {
-            return startTimestamp;
-        }
-
-        public void setStartTimestamp(int startTimestamp) {
-            this.startTimestamp = startTimestamp;
-        }
-
-        public int getEndTimestamp() {
-            return endTimestamp;
-        }
-
-        public void setEndTimestamp(int endTimestamp) {
-            this.endTimestamp = endTimestamp;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            Movement movement = (Movement) o;
-
-            if (startTimestamp != movement.startTimestamp) return false;
-            if (endTimestamp != movement.endTimestamp) return false;
-            return movementType == movement.movementType;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = movementType != null ? movementType.hashCode() : 0;
-            result = 31 * result + startTimestamp;
-            result = 31 * result + endTimestamp;
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "Movement{" +
-                    "movementType=" + movementType +
-                    ", startTimestamp=" + startTimestamp +
-                    ", endTimestamp=" + endTimestamp +
-                    '}';
-        }
-    }
-
-    public void detectMovement(List<FaceDetection> faces) {
+    public List<Movement> detectMovement(List<FaceDetection> faces) {
         faces.forEach((face) -> {
             String age = face.face().ageRange().toString();
             String smile = face.face().smile().toString();
@@ -96,7 +29,7 @@ public class MovementService {
         movements.addAll(getMovementList(faces, MovementType.YAW));
         movements.addAll(getMovementList(faces, MovementType.PITCH));
         movements.sort(Comparator.comparingInt(Movement::getStartTimestamp));
-        movements.forEach((movement -> System.out.println(movement.toString())));
+        return movements;
     }
 
     private List<Movement> getMovementList(List<FaceDetection> faces, MovementType movementType) {

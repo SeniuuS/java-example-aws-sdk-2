@@ -1,5 +1,6 @@
 package org.example.service;
 
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -19,11 +20,15 @@ public class UploadService {
     public void upload(Path videoPath) throws IOException {
         S3Client s3 = S3Client.builder().region(region).build();
 
-        createBucket(s3, region);
+//        createBucket(s3, region);
 
-        System.out.println("Uploading object...");
-
-        uploadVideo(s3, videoPath);
+        boolean created = getFile(s3, videoPath);
+        if(!created) {
+            System.out.println("Uploading object...");
+            uploadVideo(s3, videoPath);
+        } else {
+            System.out.println("Object already exists...");
+        }
 
         System.out.println("Upload complete");
         System.out.println("Closing the connection to {S3}");
@@ -31,7 +36,6 @@ public class UploadService {
         System.out.println("Connection closed");
         System.out.println("Exiting...");
     }
-
     private void createBucket(S3Client s3Client, Region region) {
         try {
             s3Client.createBucket(CreateBucketRequest
@@ -51,6 +55,19 @@ public class UploadService {
         } catch (S3Exception e) {
             System.err.println(e.awsErrorDetails().errorMessage());
             System.exit(1);
+        }
+    }
+
+    private boolean getFile(S3Client s3Client, Path path) {
+        try {
+            s3Client.headObject(
+                    HeadObjectRequest.builder()
+                            .bucket(this.bucket)
+                            .key(path.getFileName().toString())
+                            .build());
+            return true;
+        }catch(NoSuchKeyException e) {
+            return false;
         }
     }
 
