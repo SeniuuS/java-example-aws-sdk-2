@@ -6,8 +6,8 @@ import java.util.List;
 
 public class MovementService {
 
-    private static final float YAW_THRESHOLD = 25;
-    private static final float PITCH_THRESHOLD = 25;
+    private static final float YAW_THRESHOLD = 50;
+    private static final float PITCH_THRESHOLD = 50;
     private static final float MOVEMENT_THRESHOLD = 2;
 
     private enum MovementType {
@@ -65,6 +65,7 @@ public class MovementService {
                 String smile = face.face().smile().toString();
                 System.out.println("The detected face is estimated to be"
                         + age + " years old.");
+                System.out.println("There is a beard : " + face.face().beard().toString());
                 System.out.println("There is a smile : " + smile);
                 System.out.println(face.face().pose());
         });
