@@ -22,7 +22,8 @@ public class Application {
     public static final String REKO_BUCKET_NAME = "seniuus-test-rekognition-uploaded-video-us";
 //    public static final String MOVEMENT_VIDEO = "G:\\Workspace\\Cleardil\\20220329_205229.mp4";
 //    public static final String MOVEMENT_VIDEO = "E:\\Pictures\\Camera Roll\\WIN_20221005_21_25_43_Pro.mp4";
-    public static final String MOVEMENT_VIDEO = "E:\\Pictures\\Camera Roll\\WIN_20221019_16_45_20_Pro.mp4";
+//    public static final String MOVEMENT_VIDEO = "E:\\Pictures\\Camera Roll\\WIN_20221019_16_45_20_Pro.mp4";
+    public static final String MOVEMENT_VIDEO = "E:\\response.webm";
 //    public static final String MOVEMENT_VIDEO = "F:\\Download\\VID_20221012_200747.mp4";
 //    public static final String MOVEMENT_VIDEO = "D:\\Pictures\\Camera Roll\\WIN_20220930_11_29_05_Pro.mp4";
     public static final String TRAN_BUCKET_NAME = "seniuus-test-transcribe-uploaded-video-us";
@@ -31,8 +32,8 @@ public class Application {
     public static Region REGION = Region.US_WEST_2;
 
     public static void main(String[] args) throws JsonProcessingException {
-//        runForReko();
-        runForTranscribe();
+        runForReko();
+//        runForTranscribe();
     }
 
     private static void runForTranscribe() throws JsonProcessingException {
@@ -44,7 +45,7 @@ public class Application {
         AnalysisService analysisService = new AnalysisService(REGION, bucket);
 
         try {
-            uploadService.upload(videoPath);
+            videoPath = uploadService.upload(videoPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -71,7 +72,7 @@ public class Application {
         MovementService movementService = new MovementService();
 
         try {
-            uploadService.upload(videoPath);
+            videoPath = uploadService.upload(videoPath);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

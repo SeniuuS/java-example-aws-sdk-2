@@ -4,9 +4,14 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import ws.schild.jave.*;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
 
 public class UploadService {
     private Region region;
@@ -17,8 +22,20 @@ public class UploadService {
         this.bucket = bucket;
     }
 
-    public void upload(Path videoPath) throws IOException {
+    public Path upload(Path videoPath) throws IOException {
         S3Client s3 = S3Client.builder().region(region).build();
+
+        if(!videoPath.endsWith(".mp4")) {
+            System.out.println("Not mp4 video found...");
+            System.out.println("Converting...");
+            videoPath = convertToMP4(videoPath);
+            if(videoPath != null) {
+                System.out.println("Conversion finished : " + videoPath.toString());
+            } else {
+                System.out.println("Conversion failed. Exiting.");
+                System.exit(1);
+            }
+        }
 
 //        createBucket(s3, region);
 
@@ -35,7 +52,38 @@ public class UploadService {
         s3.close();
         System.out.println("Connection closed");
         System.out.println("Exiting...");
+
+        return videoPath;
     }
+
+    private Path convertToMP4(Path videoPath) throws IOException {
+        File source = new File(videoPath.toUri());
+        Path targetPath = Files.createFile(Paths.get(videoPath.getFileName() + ".mp4"));
+        File target = new File(targetPath.toUri());
+
+        AudioAttributes audio = new AudioAttributes();
+        audio.setCodec("aac");
+
+        VideoAttributes video = new VideoAttributes();
+        video.setCodec("h264");
+        video.setX264Profile(VideoAttributes.X264_PROFILE.BASELINE);
+
+        EncodingAttributes attrs = new EncodingAttributes();
+        attrs.setFormat("mp4");
+        attrs.setAudioAttributes(audio);
+        attrs.setVideoAttributes(video);
+
+        MultimediaObject ob = new MultimediaObject(source);
+        try {
+            Encoder encoder = new Encoder();
+            encoder.encode(ob, target, attrs);
+            return Paths.get(target.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private void createBucket(S3Client s3Client, Region region) {
         try {
             s3Client.createBucket(CreateBucketRequest

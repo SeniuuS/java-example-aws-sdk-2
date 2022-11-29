@@ -85,11 +85,10 @@ public class AnalysisService {
 
                 // Wait until the job succeeds
                 while (!finished) {
-
                     faceDetectionResponse = rekClient.getFaceDetection(recognitionRequest);
                     status = faceDetectionResponse.jobStatusAsString();
 
-                    if (status.compareTo("SUCCEEDED") == 0)
+                    if (status.compareTo("SUCCEEDED") == 0 || status.compareTo("FAILED") == 0)
                         finished = true;
                     else {
                         System.out.println(yy + " status is: " + status);
