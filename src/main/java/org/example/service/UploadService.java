@@ -1,9 +1,13 @@
 package org.example.service;
 
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import ws.schild.jave.*;
 
 import java.io.File;
@@ -11,21 +15,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.FileAttribute;
 
 public class UploadService {
-    private Region region;
+    private String region;
     private String bucket;
 
-    public UploadService(Region region, String bucket) {
+    public UploadService(String region, String bucket) {
         this.region = region;
         this.bucket = bucket;
     }
 
     public Path upload(Path videoPath) throws IOException {
-        S3Client s3 = S3Client.builder().region(region).build();
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(new ProfileCredentialsProvider().getCredentials()))
+                .withRegion(region)
+                .build();
 
-        if(!videoPath.endsWith(".mp4")) {
+        if(!videoPath.toString().endsWith(".mp4")) {
             System.out.println("Not mp4 video found...");
             System.out.println("Converting...");
             videoPath = convertToMP4(videoPath);
@@ -49,7 +55,6 @@ public class UploadService {
 
         System.out.println("Upload complete");
         System.out.println("Closing the connection to {S3}");
-        s3.close();
         System.out.println("Connection closed");
         System.out.println("Exiting...");
 
@@ -84,46 +89,31 @@ public class UploadService {
         return null;
     }
 
-    private void createBucket(S3Client s3Client, Region region) {
+    private void createBucket(AmazonS3 s3Client, String region) {
         try {
-            s3Client.createBucket(CreateBucketRequest
-                    .builder()
-                    .bucket(this.bucket)
-                    .createBucketConfiguration(
-                            CreateBucketConfiguration.builder()
-                                    .locationConstraint(region.id())
-                                    .build())
-                    .build());
             System.out.println("Creating bucket : " + this.bucket);
-            s3Client.waiter().waitUntilBucketExists(HeadBucketRequest.builder()
-                    .bucket(this.bucket)
-                    .build());
+            s3Client.createBucket(bucket);
             System.out.println(this.bucket + " is ready.");
             System.out.printf("%n");
-        } catch (S3Exception e) {
-            System.err.println(e.awsErrorDetails().errorMessage());
+        } catch (AmazonServiceException e) {
+            System.err.println(e.getErrorMessage());
+            System.exit(1);
+        } catch (AmazonClientException e) {
+            System.err.println(e.getMessage());
             System.exit(1);
         }
     }
 
-    private boolean getFile(S3Client s3Client, Path path) {
+    private boolean getFile(AmazonS3 s3Client, Path path) {
         try {
-            s3Client.headObject(
-                    HeadObjectRequest.builder()
-                            .bucket(this.bucket)
-                            .key(path.getFileName().toString())
-                            .build());
+            s3Client.getObjectMetadata(new GetObjectMetadataRequest(this.bucket, path.getFileName().toString()));
             return true;
-        }catch(NoSuchKeyException e) {
+        }catch(Exception e) {
             return false;
         }
     }
 
-    private void uploadVideo(S3Client s3Client, Path path) {
-        s3Client.putObject(
-                PutObjectRequest.builder()
-                        .bucket(this.bucket)
-                        .key(path.getFileName().toString()).build(),
-                path);
+    private void uploadVideo(AmazonS3 s3Client, Path path) {
+        s3Client.putObject(new PutObjectRequest(this.bucket, path.getFileName().toString(), new File(path.toUri())));
     }
 }
